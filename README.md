@@ -24,6 +24,8 @@ It includes three major phases:
 - app
 | - static
 | |- css # static styling files
+| |- images # images
+| |- |- graphs.png
 | |- js # external javascript files
 | - templates
 | |- master.html  # main page of web app
@@ -44,6 +46,11 @@ It includes three major phases:
 - .gitignore
 - requirements
 ```
+
+## Graphs
+![Alt text](app/static/images/graphs.png?raw=true "Title")
+
+
 ## Authors
 Mostafa Abdelrashied
 

@@ -94,9 +94,9 @@ def evaluate_model(model, X_test, Y_test, category_names):
     # report the f1 score, precision, and recall for each category
     for i in range(36):
         category = category_names[i]
-        f1 = f1_score(Y_test.iloc[:, i], Y_pred[:, i])
-        precision = precision_score(Y_test.iloc[:, i], Y_pred[:, i])
-        recall = recall_score(Y_test.iloc[:, i], Y_pred[:, i])
+        f1 = f1_score(Y_test.iloc[:, i], Y_pred[:, i], pos_label='positive', average='micro')
+        precision = precision_score(Y_test.iloc[:, i], Y_pred[:, i], pos_label='positive', average='micro')
+        recall = recall_score(Y_test.iloc[:, i], Y_pred[:, i], pos_label='positive', average='micro')
         print(category)
         print("\tF1 Score: %.4f\tPrecision: %.4f\t Recall: %.4f\n" % (f1, precision, recall))
 

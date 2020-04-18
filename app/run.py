@@ -27,6 +27,7 @@ def tokenize(text):
 # load data
 engine = create_engine('sqlite:///data/DisasterResponse.db')
 df = pd.read_sql_table('disaster', engine)
+
 # load model
 model = joblib.load("models/classifier.pkl")
 
@@ -36,88 +37,97 @@ model = joblib.load("models/classifier.pkl")
 @app.route('/index')
 def index():
     # extract data needed for visuals
-    genre_counts = df.groupby('genre').count()['message']
-    genre_names = list(genre_counts.index)
+    cols = ['related', 'request', 'offer',
+            'aid_related', 'medical_help', 'medical_products', 'search_and_rescue',
+            'security', 'military', 'child_alone', 'water', 'food', 'shelter',
+            'clothing', 'money', 'missing_people', 'refugees', 'death', 'other_aid',
+            'infrastructure_related', 'transport', 'buildings', 'electricity',
+            'tools', 'hospitals', 'shops', 'aid_centers', 'other_infrastructure',
+            'weather_related', 'floods', 'storm', 'fire', 'earthquake', 'cold',
+            'other_weather', 'direct_report']
 
-    # create dictionary for mapping of the 'related' column
-    related_dict = {0: 'not_related', 1: 'related'}
+    df.loc[:, cols] = df.loc[:, cols].apply(pd.to_numeric)
+    # genre and aid_related status
+    aid_rel1 = df[df['aid_related'] == 1].groupby('genre').count()['message']
+    aid_rel0 = df[df['aid_related'] == 0].groupby('genre').count()['message']
+    genre_names = list(aid_rel1.index)
 
-    # extract 'related' column and set x & y values
-    related = df['related'].map(related_dict)
-    related_counts = related.value_counts()
-    related_names = list(related_counts.index)
+    # let's calculate distribution of classes with 1
+    class_distr1 = df.drop(['id', 'message', 'original', 'genre'], axis=1).sum() / len(df)
 
-    # extract the the rest of the categories excluding 'related' and set x &
-    # y values
-    categories = df.iloc[:, 4:]
-    categories_mean = categories.mean().sort_values(ascending=False)[1:11]
-    categories_names = list(categories_mean.index)
+    # sorting values in ascending
+    class_distr1 = class_distr1.sort_values(ascending=False)
 
+    # series of values that have 0 in classes
+    class_distr0 = (class_distr1 - 1) * -1
+    class_name = list(class_distr1.index)
     # create visuals
-    # TODO: Below is an example - modify to create your own visuals
     graphs = [
         {
             'data': [
                 plotly.graph_objs.Bar(
                     x=genre_names,
-                    y=genre_counts
+                    y=aid_rel1,
+                    name='Aid related'
+
+                ),
+                plotly.graph_objs.Bar(
+                    x=genre_names,
+                    y=aid_rel0,
+                    name='Aid not related'
                 )
             ],
 
             'layout': {
-                'title': 'Message Genres Distribution',
+                'title': 'Distribution of messages ',
                 'yaxis': {
                     'title': "Count"
                 },
                 'xaxis': {
                     'title': "Genre"
-                }
+                },
+                'barmode': 'stack'
             }
         },
         {
             'data': [
                 plotly.graph_objs.Bar(
-                    x=related_names,
-                    y=related_counts
-                )
-            ],
-
-            'layout': {
-                'title': 'Message Relevance Distribution',
-                'yaxis': {
-                    'title': "Count"
-                },
-                'xaxis': {
-                    'title': ""
-                }
-            }
-        },
-        {
-            'data': [
+                    x=class_name,
+                    y=class_distr1,
+                    name='Class = 1'
+                    # orientation = 'h'
+                ),
                 plotly.graph_objs.Bar(
-                    x=categories_names,
-                    y=categories_mean
+                    x=class_name,
+                    y=class_distr0,
+                    name='Class = 0',
+                    marker=dict(
+                        color='rgb(212, 228, 247)'
+                    )
+                    # orientation = 'h'
                 )
             ],
 
             'layout': {
-                'title': 'Top 10 Message Categories Proportions',
+                'title': 'Distribution of labels',
                 'yaxis': {
-                    'title': "Proportion"
+                    'title': "Distribution"
                 },
                 'xaxis': {
-                    'title': ""
-                }
+                    'title': "Class",
+                           'tickangle': -45
+                },
+                'barmode': 'stack'
             }
         }
     ]
 
     # encode plotly graphs in JSON
     ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]
-    json_graph = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
+    graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
 
     # render web page with plotly graphs
-    return render_template('master.html', ids=ids, graphJSON=json_graph)
+    return render_template('master.html', ids=ids, graphJSON=graphJSON)
 
 
 # web page that handles user query and displays model results
